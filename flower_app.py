@@ -1,7 +1,6 @@
 import streamlit as st
 import tensorflow as tf
 import numpy as np
-
 from PIL import Image
 from tensorflow.keras.applications.vgg16 import preprocess_input
 
@@ -244,7 +243,8 @@ CLASS_NAMES = [
     "snowdrop",
     "sunflower",
     "tigerlily",
-    "tulip"
+    "tulip",
+    "windflower"
 ]
 
 
@@ -253,56 +253,70 @@ CLASS_NAMES = [
 # Load Model
 # ==========================
 
-
 @st.cache_resource
+
 def load_model():
 
-    model = tf.keras.models.load_model(
-        "best_flower_model.keras"
+    interpreter = tf.lite.Interpreter(
+
+        model_path="FlowerVision_model_int8.tflite"
+
     )
 
-    return model
+    interpreter.allocate_tensors()
 
+    return interpreter
 
-model = load_model()
+interpreter = load_model()
 
+input_details = interpreter.get_input_details()
 
+output_details = interpreter.get_output_details()
 
 # ==========================
 # Prediction
 # ==========================
-
-
 def predict(image):
 
     image = image.resize(
-        (224,224)
-    )
 
+        (224,224)
+
+    )
 
     image = np.array(image)
 
-
     image = np.expand_dims(
-        image,
-        axis=0
-    )
 
+        image,
+
+        axis=0
+
+    )
 
     image = preprocess_input(
+
         image
+
     )
 
+    interpreter.set_tensor(
 
-    prediction = model.predict(
-        image,
-        verbose=0
+        input_details[0]["index"],
+
+        image.astype(np.float32)
+
     )
 
+    interpreter.invoke()
+
+    prediction = interpreter.get_tensor(
+
+        output_details[0]["index"]
+
+    )
 
     return prediction[0]
-
-
 
 # ==========================
 # Header
